@@ -316,6 +316,7 @@ const entradasDe = (d, tipo) => (d ? d.entradas.filter((e) => e.tipo === tipo) :
 const ui = { tab: 'hoy', fecha: claveFecha() };
 const VISTAS_EXTRA = {};   // hojas que agregan otros módulos (entrenar.js)
 const EXTRA_PROGRESO = [];  // tarjetas extra en Progreso
+const EXTRA_BUSCADOR = [];   // acciones rápidas extra en el buscador
 let pila = [];   // hojas abiertas (la última es la visible)
 
 function abrir(hoja) { pila.push(hoja); pintarHoja(); }
@@ -350,7 +351,7 @@ function filaAlimento(a, accion = 'detalle', extra = '') {
 
 function grafica(puntos, { alto = 160, color = '#2F8CFF', meta = null, barras = false, etiquetas = [] } = {}) {
   if (!puntos.length) return '<div class="vacio peq">Sin datos todavía</div>';
-  const W = 320, H = alto, pad = { l: 34, r: 8, t: 12, b: 22 };
+  const W = 320, H = alto, pad = { l: 40, r: 8, t: 12, b: 22 };
   const vals = puntos.map((p) => p.y).concat(meta != null ? [meta] : []);
   let min = Math.min(...vals), max = Math.max(...vals);
   if (barras) min = 0;
@@ -362,7 +363,7 @@ function grafica(puntos, { alto = 160, color = '#2F8CFF', meta = null, barras = 
   for (let i = 0; i <= 3; i++) {
     const v = min + (max - min) * i / 3, y = Y(v);
     s += `<line x1="${pad.l}" x2="${W - pad.r}" y1="${y}" y2="${y}" stroke="currentColor" stroke-opacity="0.08"/>`;
-    s += `<text x="${pad.l - 6}" y="${y + 3}" text-anchor="end">${fmt(v)}</text>`;
+    s += `<text x="${pad.l - 6}" y="${y + 3}" text-anchor="end">${max - min > 20 ? r0(v) : fmt(v)}</text>`;
   }
   if (barras) {
     const ancho = Math.max((W - pad.l - pad.r) / puntos.length - 8, 6);
@@ -585,6 +586,7 @@ function pantallaPerfil() {
       <h3>💾 Copia de seguridad</h3>
       <div class="peq suave">Tus datos viven solo en este teléfono. Guarda una copia en Archivos / iCloud Drive cada semana. El archivo es el mismo formato que la app del iPad: puedes pasar tus datos de uno a otro.</div>
       <div class="peq negrita" style="color:${ultimo ? 'var(--verde)' : 'var(--naranja)'}">${ultimo ? 'Último respaldo: ' + new Date(Number(ultimo)).toLocaleString('es') : 'Aún no has hecho ningún respaldo.'}</div>
+      <label class="fila peq"><input type="checkbox" id="respaldo-fotos" ${localStorage.getItem('fitapp.respaldoFotos') !== '0' ? 'checked' : ''}> Incluir fotos de progreso</label>
       <button class="boton" style="background:linear-gradient(135deg,#2F8CFF,#5B5CE6)" data-a="exportar">⬆️ Guardar respaldo</button>
       <button class="boton secundario" data-a="importar">⬇️ Restaurar / importar desde archivo</button>
     </div>
@@ -593,7 +595,7 @@ function pantallaPerfil() {
       <div class="peq suave">En Safari toca <b>Compartir</b> → <b>Añadir a pantalla de inicio</b>. Se abre a pantalla completa y funciona sin internet.</div>
     </div>
     <button class="boton peligro" data-a="borrar-todo">Borrar todos mis datos de este teléfono</button>
-    <div class="mini tenue centro">FitApp Web · v1.2 · sin anuncios, sin cuentas</div>
+    <div class="mini tenue centro">FitApp Web · v1.3 · sin anuncios, sin cuentas</div>
   </div>`;
 }
 
@@ -653,7 +655,7 @@ function pintarResultados() {
   } else {
     html += `<div class="acciones-rapidas" style="margin-top:4px">
       <button class="accion-r" style="background:linear-gradient(135deg,#9B5CFF,#FF4F8B)" data-a="abrir-nuevo"><b>➕ Nuevo alimento</b><span>Con los datos de la etiqueta</span></button>
-      <button class="accion-r" style="background:linear-gradient(135deg,#22C47A,#2F8CFF)" data-a="enfocar-busqueda"><b>🔎 Buscar</b><span>512 alimentos + los tuyos</span></button>
+      ${EXTRA_BUSCADOR.map((x) => `<button class="accion-r" style="background:${x.g}" data-a="${x.a}"><b>${x.t}</b><span>${x.d}</span></button>`).join('')}
     </div>`;
     const frecuentes = S.comidasGuardadas.filter((c) => c.items && c.items.length)
       .sort((a, b) => (b.vecesUsada || 0) - (a.vecesUsada || 0));
@@ -721,6 +723,8 @@ function hojaNuevo(h) {
   const campo = (id, titulo, unidad, ph = '0') => `<div class="campo"><label for="n-${id}">${titulo}</label>
     <div class="numerico"><input type="text" inputmode="decimal" id="n-${id}" data-campo="${id}" value="${esc(f[id])}" placeholder="${ph}"><span class="unidad">${unidad}</span></div></div>`;
   return cabecera('Nuevo alimento', 'Cancelar', 'Guardar', 'guardar-nuevo') + `<div class="hoja-cuerpo pila">
+    ${f.deEtiqueta ? '<div class="tarjeta peq negrita" style="color:var(--violeta)">🔎 Valores leídos de la etiqueta. Revísalos con el empaque antes de guardar.</div>' : ''}
+    ${f.codigoBarras ? `<div class="mini suave">🏷️ Código ${esc(f.codigoBarras)}: la próxima vez se reconocerá al escanearlo.</div>` : ''}
     <div class="tarjeta pila">
       <div class="campo"><label for="n-nombre">Nombre</label><input type="text" id="n-nombre" data-campo="nombre" value="${esc(f.nombre)}" placeholder="Ej.: Yogur griego de la tienda" data-enfocar></div>
       <div class="campo"><label for="n-cat">Categoría</label><select id="n-cat" data-campo="categoria">${CATEGORIAS_NUEVO.map((c) => `<option ${c === f.categoria ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
@@ -900,7 +904,9 @@ function leerRespaldo(r) {
 }
 
 async function exportar() {
-  const datos = JSON.stringify(crearRespaldo());
+  const respaldo = crearRespaldo();
+  if (window.fotosParaRespaldo && localStorage.getItem('fitapp.respaldoFotos') !== '0') respaldo.fotos = await window.fotosParaRespaldo();
+  const datos = JSON.stringify(respaldo);
   const nombre = `FitApp-respaldo-${claveFecha()}.json`;
   const archivo = new File([datos], nombre, { type: 'application/json' });
   localStorage.setItem('fitapp.ultimoRespaldo', String(Date.now()));
@@ -1031,12 +1037,13 @@ const acciones = {
       descripcionPorcion: (f.descripcion || '').trim() || `${fmt(porcion)} g`,
       calorias100g: r1((leerNum(f.calorias) || 0) * k), proteina100g: r1((leerNum(f.proteina) || 0) * k),
       carbohidratos100g: r1((leerNum(f.carbohidratos) || 0) * k), grasa100g: r1((leerNum(f.grasa) || 0) * k),
-      fibra100g: r1((leerNum(f.fibra) || 0) * k), esFavorito: false, vecesUsado: 0, codigoBarras: ''
+      fibra100g: r1((leerNum(f.fibra) || 0) * k), esFavorito: false, vecesUsado: 0, codigoBarras: f.codigoBarras || ''
     };
     S.alimentosPersonalizados.push(nuevo);
     cacheTodos = null; guardar();
     pila.pop();
     const a = alimento(nuevo.codigo);
+    if (hojaActual() && hojaActual().alCrear) { hojaActual().alCrear(a); pintarHoja(); aviso('Alimento guardado'); return; }
     if (hojaActual() && hojaActual().tipo === 'buscador') {
       abrir({ tipo: 'detalle', codigo: a.codigo, tipoComida: h.tipoComida, gramos: fmt(a.porcion_gramos) });
     } else { pintarHoja(); pintar(); }
@@ -1149,6 +1156,7 @@ document.addEventListener('input', (ev) => {
 
 document.addEventListener('change', (ev) => {
   const el = ev.target, h = hojaActual();
+  if (el.id === 'respaldo-fotos') localStorage.setItem('fitapp.respaldoFotos', el.checked ? '1' : '0');
   if (h && h.f && el.dataset.campo) h.f[el.dataset.campo] = el.value;
 });
 
@@ -1159,6 +1167,7 @@ $('#archivo').addEventListener('change', async (ev) => {
   try {
     const r = JSON.parse(await archivo.text());
     const nuevo = leerRespaldo(r);
+    if (window.importarFotos && Array.isArray(r.fotos) && r.fotos.length) await window.importarFotos(r.fotos);
     const dias = Object.keys(nuevo.dias).length;
     const fecha = r.fecha ? new Date(r.fecha).toLocaleString('es') : '';
     if (!confirm(`Respaldo ${fecha}: ${dias} días registrados.\nTus datos actuales de este teléfono se reemplazarán. ¿Continuar?`)) return;

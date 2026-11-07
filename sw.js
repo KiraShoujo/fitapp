@@ -1,6 +1,6 @@
 // Service worker: guarda la app para que abra sin internet.
 // Al publicar cambios, sube VERSION para que se actualice en el teléfono.
-const VERSION = 'fitapp-v1.2.0';
+const VERSION = 'fitapp-v1.3.0';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -9,6 +9,8 @@ const ARCHIVOS = [
   './alimentos.json',
   './rutinas.json',
   './entrenar.js',
+  './progreso.js',
+  './cocina.js',
   './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',
@@ -22,7 +24,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((claves) => Promise.all(claves.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      .then((claves) => Promise.all(claves.filter((k) => k !== VERSION && k !== 'fitapp-librerias').map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -30,7 +32,20 @@ self.addEventListener('activate', (e) => {
 // Primero lo guardado (rápido y sin internet); en segundo plano se actualiza.
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.method !== 'GET') return;
+  const origen = new URL(req.url).origin;
+  // Librerías del escáner (se descargan la primera vez y quedan guardadas).
+  if (origen === 'https://cdn.jsdelivr.net' || origen === 'https://tessdata.projectnaptha.com') {
+    e.respondWith(caches.open('fitapp-librerias').then(async (cache) => {
+      const guardado = await cache.match(req);
+      if (guardado) return guardado;
+      const resp = await fetch(req);
+      if (resp && (resp.ok || resp.type === 'opaque')) cache.put(req, resp.clone());
+      return resp;
+    }));
+    return;
+  }
+  if (origen !== location.origin) return;
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const guardado = await cache.match(req, { ignoreSearch: true });
