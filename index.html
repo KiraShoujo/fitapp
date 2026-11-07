@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>FitApp</title>
+  <meta name="description" content="Tu app de nutrición y ejercicio. Funciona sin internet.">
+  <meta name="theme-color" content="#F4F2FA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111015" media="(prefers-color-scheme: dark)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="FitApp">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app"><div class="cargando">Cargando…</div></div>
+  <div id="modal"></div>
+  <div id="aviso" class="aviso" hidden></div>
+  <input type="file" id="archivo" accept="application/json,.json" hidden>
+  <script src="app.js"></script>
+</body>
+</html>
