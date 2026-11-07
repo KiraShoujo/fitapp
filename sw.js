@@ -1,6 +1,6 @@
 // Service worker: guarda la app para que abra sin internet.
 // Al publicar cambios, sube VERSION para que se actualice en el teléfono.
-const VERSION = 'fitapp-v1.3.0';
+const VERSION = 'fitapp-v1.4.0';
 const ARCHIVOS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ARCHIVOS = [
   './entrenar.js',
   './progreso.js',
   './cocina.js',
+  './cuerpo.js',
   './manifest.webmanifest',
   './icons/icon-180.png',
   './icons/icon-192.png',

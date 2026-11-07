@@ -595,7 +595,7 @@ function pantallaPerfil() {
       <div class="peq suave">En Safari toca <b>Compartir</b> → <b>Añadir a pantalla de inicio</b>. Se abre a pantalla completa y funciona sin internet.</div>
     </div>
     <button class="boton peligro" data-a="borrar-todo">Borrar todos mis datos de este teléfono</button>
-    <div class="mini tenue centro">FitApp Web · v1.3 · sin anuncios, sin cuentas</div>
+    <div class="mini tenue centro">FitApp Web · v1.4 · sin anuncios, sin cuentas</div>
   </div>`;
 }
 
@@ -626,9 +626,9 @@ function cabecera(titulo, izq = 'Cerrar', der = '', accionDer = '') {
 // Buscador
 function hojaBuscador(h) {
   const t = tipoInfo(h.tipoComida);
-  return cabecera('Añadir a ' + t.nombre) + `<div class="hoja-cuerpo">
-    <div class="buscar"><input type="search" id="q" placeholder="Buscar alimento (ej. arroz, pollo, guineo)" value="${esc(h.texto || '')}" autocomplete="off" autocorrect="off" spellcheck="false"></div>
-    <div id="resultados"></div></div>`;
+  return `<div class="cab-buscador">${cabecera('Añadir a ' + t.nombre)}
+    <div class="buscar"><input type="search" id="q" placeholder="Buscar alimento (ej. arroz, pollo, guineo)" value="${esc(h.texto || '')}" autocomplete="off" autocorrect="off" spellcheck="false"></div></div>
+    <div class="hoja-cuerpo" style="padding-top:8px"><div id="resultados"></div></div>`;
 }
 
 function habituales(tipo) {
