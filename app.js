@@ -314,6 +314,8 @@ const entradasDe = (d, tipo) => (d ? d.entradas.filter((e) => e.tipo === tipo) :
 // ───────────────────────── Estado de pantalla ─────────────────────────
 
 const ui = { tab: 'hoy', fecha: claveFecha() };
+const VISTAS_EXTRA = {};   // hojas que agregan otros módulos (entrenar.js)
+const EXTRA_PROGRESO = [];  // tarjetas extra en Progreso
 let pila = [];   // hojas abiertas (la última es la visible)
 
 function abrir(hoja) { pila.push(hoja); pintarHoja(); }
@@ -388,13 +390,14 @@ function grafica(puntos, { alto = 160, color = '#2F8CFF', meta = null, barras = 
 function pintar() {
   const app = $('#app');
   if (!S.perfil) { app.innerHTML = pantallaBienvenida(); return; }
-  const contenido = ui.tab === 'hoy' ? pantallaHoy() : ui.tab === 'progreso' ? pantallaProgreso() : pantallaPerfil();
+  const pantallas = { hoy: pantallaHoy, entrenar: () => (window.pantallaEntrenar ? window.pantallaEntrenar() : ''), progreso: pantallaProgreso, perfil: pantallaPerfil };
+  const contenido = (pantallas[ui.tab] || pantallaHoy)();
   app.innerHTML = contenido + barraTabs();
 }
 
 function barraTabs() {
   const t = (id, ico, nombre) => `<button class="tab ${ui.tab === id ? 'activa' : ''}" data-a="tab" data-tab="${id}"><span class="ico">${ico}</span>${nombre}</button>`;
-  return `<nav class="tabs">${t('hoy', '🍽️', 'Hoy')}${t('progreso', '📈', 'Progreso')}${t('perfil', '👤', 'Perfil')}</nav>`;
+  return `<nav class="tabs">${t('hoy', '🍽️', 'Hoy')}${t('entrenar', '🏋️', 'Entrenar')}${t('progreso', '📈', 'Progreso')}${t('perfil', '👤', 'Perfil')}</nav>`;
 }
 
 function pantallaBienvenida() {
@@ -549,6 +552,7 @@ function pantallaProgreso() {
       ${grafica(semana, { barras: true, meta: m.calorias, etiquetas })}
       <div class="mini suave">Línea verde: tu meta (${m.calorias} kcal). Barras rojas: días por encima de la meta.</div>
     </div>
+    ${EXTRA_PROGRESO.map((f) => f()).join('')}
     ${consejosSemana(promedio, conComida.length, suenoDias ? suenoTotal / suenoDias : 0, aguaDias ? aguaTotal / aguaDias : 0, m)}
   </div>`;
 }
@@ -589,7 +593,7 @@ function pantallaPerfil() {
       <div class="peq suave">En Safari toca <b>Compartir</b> → <b>Añadir a pantalla de inicio</b>. Se abre a pantalla completa y funciona sin internet.</div>
     </div>
     <button class="boton peligro" data-a="borrar-todo">Borrar todos mis datos de este teléfono</button>
-    <div class="mini tenue centro">FitApp Web · fase 1 · sin anuncios, sin cuentas</div>
+    <div class="mini tenue centro">FitApp Web · v1.2 · sin anuncios, sin cuentas</div>
   </div>`;
 }
 
@@ -600,9 +604,13 @@ function pintarHoja() {
   const h = hojaActual();
   document.body.style.overflow = h ? 'hidden' : '';
   if (!h) { cont.innerHTML = ''; return; }
-  const vistas = { buscador: hojaBuscador, detalle: hojaDetalle, nuevo: hojaNuevo, perfil: hojaPerfil, peso: hojaPeso,
+  const vistas = { ...VISTAS_EXTRA, buscador: hojaBuscador, detalle: hojaDetalle, nuevo: hojaNuevo, perfil: hojaPerfil, peso: hojaPeso,
     actividad: hojaActividad, guardarComida: hojaGuardarComida };
-  cont.innerHTML = `<div class="hoja">${vistas[h.tipo](h)}</div>`;
+  const animar = !h._visto; h._visto = true;
+  const scroll = cont.firstElementChild && !animar ? cont.firstElementChild.scrollTop : 0;
+  cont.innerHTML = `<div class="hoja ${h.clase || ''} ${animar ? 'animar' : ''}">${vistas[h.tipo](h)}</div>`;
+  if (scroll) cont.firstElementChild.scrollTop = scroll;
+  if (h.alPintar) h.alPintar();
   if (h.tipo === 'buscador') { pintarResultados(); }
   const enfocar = cont.querySelector('[data-enfocar]');
   if (enfocar && h.tipo !== 'buscador') setTimeout(() => enfocar.focus(), 50);
@@ -1174,6 +1182,7 @@ async function iniciar() {
     ALIMENTOS = [];
   }
   cacheTodos = null;
+  if (window.cargarEntrenar) await window.cargarEntrenar();
   pintar();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
